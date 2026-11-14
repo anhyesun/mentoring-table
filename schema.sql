@@ -9,8 +9,29 @@ create table public.signups (
   name_key      text not null,
   cancel_token  uuid not null default gen_random_uuid(),
   created_at    timestamptz not null default now(),
-  unique (round, name_key)          -- 같은 라운드 같은 이름 금지 (최종 안전장치)
+  constraint signups_round_name_key_key unique (round, name_key),
+  constraint signups_one_per_mentor unique (table_no, name_key)
 );
+
+-- 기존 데이터에 같은 멘토 중복이 없는 경우에만 제약을 추가
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+     where conrelid = 'public.signups'::regclass
+       and conname = 'signups_one_per_mentor'
+  ) then
+    if exists (
+      select 1 from public.signups
+       group by table_no, name_key
+      having count(*) > 1
+    ) then
+      raise exception 'Cannot add signups_one_per_mentor: duplicate mentor signups already exist';
+    end if;
+    alter table public.signups
+      add constraint signups_one_per_mentor unique (table_no, name_key);
+  end if;
+end $$;
 
 -- 라운드별 신청 수 (공개, 실시간 구독용)
 create table public.slot_counts (
@@ -97,9 +118,10 @@ declare
   v_key   text;
   v_taken int;
   v_other int;
+  v_con   text;
 begin
   if v_first = '' or v_last = '' then raise exception 'NAME_REQUIRED'; end if;
-  if p_table between 18 and 20 then raise exception 'NO_MENTOR'; end if;  -- 멘토 확정 시 이 줄 수정
+  if p_table between 19 and 20 then raise exception 'NO_MENTOR'; end if;
   v_key := lower(v_first) || ' ' || lower(v_last);
 
   -- 이 테이블/라운드 행을 잠가서 동시에 들어온 신청을 한 줄로 세움
@@ -111,12 +133,17 @@ begin
   select s.table_no into v_other from signups s where s.round = p_round and s.name_key = v_key;
   if found then raise exception 'DUPLICATE:%', v_other; end if;
 
+  select s.round into v_other from signups s where s.table_no = p_table and s.name_key = v_key;
+  if found then raise exception 'SAME_MENTOR:%', v_other; end if;
+
   begin
     return query
       insert into signups (table_no, round, first_name, last_name, name_key)
       values (p_table, p_round, v_first, v_last, v_key)
       returning signups.id, signups.cancel_token;
   exception when unique_violation then
+    get stacked diagnostics v_con = constraint_name;
+    if v_con = 'signups_one_per_mentor' then raise exception 'SAME_MENTOR'; end if;
     raise exception 'DUPLICATE';
   end;
 end $$;

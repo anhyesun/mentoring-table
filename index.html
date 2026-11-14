@@ -304,7 +304,7 @@ const MENTORS = [
   {name:"Youngwon Kim", co:"Truveta", field:"ML Researcher", li:"https://www.linkedin.com/in/kimyw/"},
   {name:"DongKyu Kim", co:"Google", field:"Software Engineering", li:"https://www.linkedin.com/in/dongkyukim0419/"},
   {name:"Jinu Jang", co:"Microsoft", field:"Applied Science (AI/ML)", li:"https://www.linkedin.com/in/jinu-jang/"},
-  {name:"Minkwon Choi", co:"Pinterest", field:"AI Solutions Engineering", li:"https://www.linkedin.com/in/minkwon-choi/"},
+  {name:"Minkwon Choi", co:"Pinterest", field:"Software Engineering", li:"https://www.linkedin.com/in/minkwon-choi/"},
   {name:"Taehwan Jung", co:"Microsoft", field:"Director of Product Management", li:"https://www.linkedin.com/in/taehwan-j-56907316/"},
   {name:"Henry Kim", co:"The Home Depot", field:"Product Designer & UX Researcher", li:"https://www.linkedin.com/in/henrykkim/"},
   {name:"Ethan Hong", co:"Meta", field:"Senior User Experience Researcher", li:"https://www.linkedin.com/in/eshong/"},
@@ -314,10 +314,11 @@ const MENTORS = [
   {name:"Ryan Lee", co:"JIGO", field:"Entrepreneurship / PM", li:"https://www.linkedin.com/in/ryanshlee/"},
   {name:"Seungmyung Lee", co:"Google DeepMind", field:"Software Engineering", li:"https://www.linkedin.com/in/btrees/"},
   {name:"Hyesun An", co:"Microsoft", field:"Software Engineering", li:"https://www.linkedin.com/in/anhyesun/"},
-  null, null, null
+  {name:"Minsoo Kim", co:"Apple", field:"ML Researcher", li:"https://www.linkedin.com/in/minsoo-kim-37268a1b0/"},
+  null, null
 ];
-const HAS_PHOTO = new Set(["Insuk Cho","Hoyeon Park","Hyunsoo Choe","Jusung Park","Youngwon Kim","DongKyu Kim","Minkwon Choi","Henry Kim","Ethan Hong","Jason Park","Hyunuk Lim","Minji Woo","Ryan Lee","Hyesun An"]);
-const LOGO_KEYS = ["Microsoft","Amazon","Google","Truveta","Elastic","Pinterest","Meta","JIGO","The Home Depot"];
+const HAS_PHOTO = new Set(["Insuk Cho","Hoyeon Park","Hyunsoo Choe","Jusung Park","Youngwon Kim","DongKyu Kim","Minkwon Choi","Henry Kim","Ethan Hong","Jason Park","Hyunuk Lim","Minji Woo","Ryan Lee","Hyesun An","Minsoo Kim"]);
+const LOGO_KEYS = ["Microsoft","Amazon","Google","Truveta","Elastic","Pinterest","Meta","JIGO","The Home Depot","Apple"];
 const slug = t => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const logoKey = co => LOGO_KEYS.find(k => co === k || co.startsWith(k + " "));
 const logoImgs = (co, alt) => {
