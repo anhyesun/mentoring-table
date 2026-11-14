@@ -125,6 +125,7 @@ header p{margin:0; color:var(--muted)}
 .msg{font-size:13px; margin:6px 0 0; color:var(--accent)}
 .msg.err{color:#D14343}
 .note{font-size:12px; color:var(--muted); margin:10px 0 0}
+.who{font-size:13px; color:var(--muted); margin:4px 0 0; line-height:1.5}
 .mine{display:inline-block; margin-left:6px; padding:1px 7px; border-radius:999px; background:var(--accent-soft); color:var(--accent); font-size:11px; font-weight:500}
 .legend{display:flex; gap:18px; flex-wrap:wrap; margin-top:12px; font-size:13px; color:var(--muted)}
 .legend span{display:inline-flex; align-items:center; gap:6px}
@@ -340,6 +341,7 @@ const chairs = (cls) => `<span class="chairs ${cls}"><b></b><b></b></span>`;
 
 // ===== 상태 =====
 const counts = {};                 // "테이블-라운드" -> 신청 수 (서버 값)
+const whoMap = {};                 // "테이블-라운드" -> 신청자 first name 목록 (서버 값)
 const takenOf = (n, r) => counts[n + '-' + r] || 0;
 let mine = [];                     // 이 기기에서 신청한 것 {id, token, table, round, name}
 try { mine = JSON.parse(localStorage.getItem(MY_KEY) || '[]') || []; } catch (e) { mine = []; }
@@ -432,6 +434,7 @@ function renderSignup(n){
     return `<div class="slot"><div class="slot-head"><span class="slot-name">Round ${r}</span><span class="slot-time">${ROUNDS[r]}</span></div>` +
       `<div class="seats" aria-hidden="true">${seats}</div>` +
       `<p class="left${left <= 0 ? ' full' : ''}">${left > 0 ? `${left}자리 남음 (${taken}/${CAP})` : `마감 (${CAP}/${CAP})`}</p>` +
+      ((whoMap[n + '-' + r] || []).length ? `<p class="who">신청: ${esc((whoMap[n + '-' + r]).join(', '))}</p>` : '') +
       names + action + fl + `</div>`;
   }).join('');
 
@@ -442,6 +445,12 @@ function refresh(){ paintSeats(); renderSignup(current); }
 
 function errorText(message, r){
   const m = String(message || '');
+  if (m.includes('SAME_MENTOR')) {
+    const other = +m.split('SAME_MENTOR:')[1];
+    return other
+      ? `이미 Round ${other}에 이 멘토와 만나도록 신청돼 있어요. 다른 멘토를 골라 주세요.`
+      : '이미 다른 라운드에 이 멘토와 만나도록 신청돼 있어요. 다른 멘토를 골라 주세요.';
+  }
   if (m.includes('DUPLICATE:')) { const t = +m.split('DUPLICATE:')[1]; return `이미 Round ${r}에 ${pad(t)}번 테이블로 신청돼 있어요.`; }
   if (m.includes('DUPLICATE')) return '이미 이 라운드에 신청돼 있어요.';
   if (m.includes('FULL')) return '이 라운드는 이미 마감됐어요.';
@@ -462,6 +471,8 @@ async function submitForm(f){
   const name = first + ' ' + last;
   const dup = mine.find(x => x.round === r && x.name.toLowerCase() === name.toLowerCase());
   if (dup) { fail(`이미 Round ${r}에 ${pad(dup.table)}번 테이블로 신청돼 있어요.`); return; }
+  const sameMentor = mine.find(x => x.table === n && x.round !== r && x.name.toLowerCase() === name.toLowerCase());
+  if (sameMentor) { fail(`이미 Round ${sameMentor.round}에 이 멘토와 만나도록 신청돼 있어요. 다른 멘토를 골라 주세요.`); return; }
 
   busy = true; renderSignup(current);
   const { data, error } = await sb.rpc('sign_up', { p_table: n, p_round: r, p_first: first, p_last: last });
@@ -477,6 +488,7 @@ async function submitForm(f){
   mine.push({ id: row.signup_id, token: row.cancel_token, table: n, round: r, name });
   saveMine();
   counts[n + '-' + r] = Math.min(CAP, takenOf(n, r) + 1); // 실시간 값이 오면 그 값으로 덮어씀
+  whoMap[n + '-' + r] = [...(whoMap[n + '-' + r] || []), first];
   openForm = null;
   flash = { r, text: `${name}님, Round ${r} 신청이 완료됐어요.` };
   refresh();
@@ -576,9 +588,9 @@ q.addEventListener('input', () => {
 // ===== Supabase 연결 =====
 async function loadCounts(){
   if (!sb) return;
-  const { data, error } = await sb.from('slot_counts').select('table_no, round, taken');
+  const { data, error } = await sb.from('slot_counts').select('table_no, round, taken, first_names');
   if (error) { if (status !== 'online') { status = 'error'; refresh(); } return; }
-  data.forEach(row => { counts[row.table_no + '-' + row.round] = row.taken; });
+  data.forEach(row => { const k = row.table_no + '-' + row.round; counts[k] = row.taken; whoMap[k] = row.first_names || []; });
   status = 'online';
   refresh();
 }
@@ -592,7 +604,7 @@ function initBackend(){
   loadCounts();
   sb.channel('slot-counts')
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'slot_counts' }, payload => {
-      const r = payload.new; counts[r.table_no + '-' + r.round] = r.taken; refresh();
+      const r = payload.new; const k = r.table_no + '-' + r.round; counts[k] = r.taken; whoMap[k] = r.first_names || []; refresh();
     })
     .subscribe(s => { if (s === 'SUBSCRIBED') loadCounts(); });
   // 휴대폰이 잠들었다가 돌아오면 최신 값으로 다시 맞춤

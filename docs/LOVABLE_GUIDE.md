@@ -36,7 +36,7 @@ HTML 안에는 사진과 로고가 base64로 들어 있어서 파일이 커요. 
 브라우저 저장소 대신 Supabase를 써요. 핵심 원칙은 세 가지예요.
 
 1. **정원과 중복 확인은 서버에서 한다.** 브라우저에서 "자리 수 확인 → 저장"을 따로 하면, 두 사람이 동시에 마지막 자리를 누를 때 6명이 들어갈 수 있어요. 그래서 확인과 저장을 하나의 데이터베이스 함수(`sign_up`) 안에서 행 잠금과 함께 처리해요.
-2. **공개 화면에는 이름을 노출하지 않는다.** 링크만 있으면 누구나 볼 수 있으므로, 참가자 이름이 담긴 `signups` 테이블은 외부에서 직접 읽지 못하게 막고, 자리 수만 담긴 `slot_counts` 테이블만 공개해요. (지금 HTML은 신청자 이름을 패널에 보여 주는데, 공개 배포 버전에서는 "내가 신청한 것"만 보여 주는 쪽으로 바꾸는 걸 추천해요.)
+2. **전체 이름은 공개하지 않고, 신청자의 first name은 공개한다.** `signups` 테이블은 외부에서 직접 읽지 못하게 막지만, `slot_counts.first_names`를 통해 테이블별 신청자의 first name은 누구나 볼 수 있어요. 이름 공개가 적절하지 않은 행사라면 HTML의 신청자 표시와 이 공개 필드를 제거하세요.
 3. **취소는 본인만 한다.** 신청하면 `cancel_token`을 돌려주고, 그 기기의 `localStorage`에 보관해요. 취소할 때 이 토큰이 있어야만 지워져요. 운영진은 Supabase 대시보드에서 직접 지울 수 있어요.
 
 ### 3-1. Supabase SQL (SQL Editor에 그대로 실행)
@@ -57,18 +57,41 @@ create table public.signups (
 
 -- 라운드별 신청 수 (공개, 실시간 구독용)
 create table public.slot_counts (
-  table_no  smallint not null,
-  round     smallint not null,
-  taken     smallint not null default 0 check (taken between 0 and 5),
+  table_no    smallint not null,
+  round       smallint not null,
+  taken       smallint not null default 0 check (taken between 0 and 5),
+  first_names text[] not null default '{}'::text[],
   primary key (table_no, round)
 );
 
+-- 기존 프로젝트에도 적용할 수 있도록 컬럼이 없을 때만 추가
+alter table public.slot_counts
+  add column if not exists first_names text[] not null default '{}'::text[];
+
+comment on column public.slot_counts.first_names is
+  'Public first names shown beside table availability; readable by anon clients.';
+
 insert into public.slot_counts (table_no, round)
-select t, r from generate_series(1, 20) t, generate_series(1, 2) r;
+select t, r from generate_series(1, 20) t, generate_series(1, 2) r
+on conflict (table_no, round) do nothing;
+
+-- 기존 신청 데이터로 공개 first name 목록과 신청 수를 맞춤
+update public.slot_counts c
+set taken = (
+      select count(*)::smallint
+      from public.signups s
+      where s.table_no = c.table_no and s.round = c.round
+    ),
+    first_names = coalesce((
+      select array_agg(s.first_name order by s.created_at, s.id)
+      from public.signups s
+      where s.table_no = c.table_no and s.round = c.round
+    ), '{}'::text[]);
 
 -- 권한: signups는 함수로만 접근, slot_counts는 읽기만 공개
 alter table public.signups enable row level security;
 alter table public.slot_counts enable row level security;
+drop policy if exists "public read counts" on public.slot_counts;
 create policy "public read counts" on public.slot_counts for select using (true);
 revoke all on public.signups from anon, authenticated;
 revoke insert, update, delete on public.slot_counts from anon, authenticated;
@@ -77,15 +100,33 @@ grant select on public.slot_counts to anon, authenticated;
 -- 신청 수 자동 동기화
 create or replace function public.sync_slot_counts() returns trigger
 language plpgsql security definer set search_path = public as $$
+declare
+  v_table smallint;
+  v_round smallint;
 begin
   if tg_op = 'INSERT' then
-    update slot_counts set taken = taken + 1 where table_no = new.table_no and round = new.round;
+    v_table := new.table_no;
+    v_round := new.round;
   elsif tg_op = 'DELETE' then
-    update slot_counts set taken = taken - 1 where table_no = old.table_no and round = old.round;
+    v_table := old.table_no;
+    v_round := old.round;
   end if;
+
+  update public.slot_counts c
+  set taken = snapshot.taken,
+      first_names = snapshot.first_names
+  from (
+    select count(*)::smallint as taken,
+           coalesce(array_agg(s.first_name order by s.created_at, s.id), '{}'::text[]) as first_names
+    from public.signups s
+    where s.table_no = v_table and s.round = v_round
+  ) snapshot
+  where c.table_no = v_table and c.round = v_round;
+
   return null;
 end $$;
 
+drop trigger if exists signups_sync on public.signups;
 create trigger signups_sync after insert or delete on public.signups
 for each row execute function public.sync_slot_counts();
 
@@ -143,18 +184,20 @@ grant execute on function public.cancel_signup(uuid, uuid) to anon, authenticate
 alter publication supabase_realtime add table public.slot_counts;
 ```
 
+이미 기존 Supabase 스키마를 운영 중이라면 전체 SQL을 다시 실행하지 말고, 저장소의 [schema.sql](../schema.sql)에서 `기존 프로젝트에도 적용할 수 있도록 컬럼이 없을 때만 추가` 주석부터 `signups_sync` 트리거 생성까지의 블록을 실행하세요. 이 블록은 공개 first name 필드를 추가하고 기존 신청 데이터를 채웁니다.
+
 ### 3-2. 클라이언트 연동 (supabase-js 예시)
 
 ```ts
-// 1) 처음 로드: 라운드별 자리 수
-const { data: counts } = await supabase.from("slot_counts").select("table_no, round, taken");
-// counts → Map key `${table_no}-${round}` → taken
+// 1) 처음 로드: 라운드별 자리 수와 공개된 first name
+const { data: counts } = await supabase.from("slot_counts").select("table_no, round, taken, first_names");
+// counts → Map key `${table_no}-${round}` → { taken, first_names }
 
 // 2) 실시간 구독: 누가 신청/취소하면 바로 반영 (페이지에서 한 번만 구독)
 const channel = supabase
   .channel("slot-counts")
   .on("postgres_changes", { event: "UPDATE", schema: "public", table: "slot_counts" },
-      (payload) => updateCount(payload.new.table_no, payload.new.round, payload.new.taken))
+      (payload) => updateCount(payload.new.table_no, payload.new.round, payload.new.taken, payload.new.first_names))
   .subscribe();
 
 // 3) 신청
@@ -204,11 +247,11 @@ await supabase.rpc("cancel_signup", { p_id: mine.id, p_token: mine.token });
 
 저장:
 - localStorage 대신 Supabase를 써. 테이블과 함수는 이미 만들어져 있어:
-  slot_counts(table_no, round, taken) 공개 읽기 + 실시간,
+  slot_counts(table_no, round, taken, first_names) 공개 읽기 + 실시간. first_names로 신청자의 first name을 공개해,
   rpc sign_up(p_table, p_round, p_first, p_last) → {signup_id, cancel_token},
   rpc cancel_signup(p_id, p_token) → boolean.
 - 좌석 수는 slot_counts를 처음 한 번 읽고 realtime으로 갱신해.
-- 신청자 이름 목록은 공개 화면에 보여 주지 마. 대신 이 기기에서 신청한 것만
+- 공개된 신청자 first name 목록은 테이블 상세에 표시해. 전체 이름은 공개하지 마. 이 기기에서 신청한 것은
   localStorage에 {id, token, tableNo, round, name}으로 저장해서 "내 신청"으로 보여 주고 취소 버튼을 달아줘.
 - 서버 에러 메시지(NAME_REQUIRED, FULL, DUPLICATE:n, NO_MENTOR)는 한국어 안내 문구로 바꿔서 보여줘.
 - 신청 버튼은 요청 중에 비활성화해서 두 번 눌리지 않게 해줘.
@@ -221,4 +264,4 @@ await supabase.rpc("cancel_signup", { p_id: mine.id, p_token: mine.token });
 - **정원 변경**: `slot_counts`의 `check (taken between 0 and 5)`와 `sign_up`의 `>= 5`, 그리고 `mentors.json`의 `seatsPerRound`를 함께 바꿔요.
 - **행사 전 초기화**: 테스트 신청을 지울 때는 `delete from signups;` 한 줄이면 `slot_counts`도 트리거로 같이 0이 돼요.
 - **장난 신청 대비**: 링크가 공개되면 아무 이름으로나 신청할 수 있어요. 필요하면 행사 코드 입력칸을 추가하고 `sign_up`에서 코드를 확인하거나, 참가자 명단(사전 등록자)과 이름을 대조하는 방식을 고려하세요.
-- **개인정보**: 이름만 저장하지만, 공개 화면에 이름을 노출하지 않는 구조를 유지하는 게 안전해요.
+- **개인정보**: 신청자의 first name은 공개 `slot_counts`에서 누구나 읽을 수 있어요. first name도 공개하면 안 되는 행사라면 공개 API에서 이름 필드를 제외하고 화면 표시 기능도 꺼야 해요.

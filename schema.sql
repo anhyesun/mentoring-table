@@ -14,18 +14,41 @@ create table public.signups (
 
 -- 라운드별 신청 수 (공개, 실시간 구독용)
 create table public.slot_counts (
-  table_no  smallint not null,
-  round     smallint not null,
-  taken     smallint not null default 0 check (taken between 0 and 5),
+  table_no    smallint not null,
+  round       smallint not null,
+  taken       smallint not null default 0 check (taken between 0 and 5),
+  first_names text[] not null default '{}'::text[],
   primary key (table_no, round)
 );
 
+-- 기존 프로젝트에도 적용할 수 있도록 컬럼이 없을 때만 추가
+alter table public.slot_counts
+  add column if not exists first_names text[] not null default '{}'::text[];
+
+comment on column public.slot_counts.first_names is
+  'Public first names shown beside table availability; readable by anon clients.';
+
 insert into public.slot_counts (table_no, round)
-select t, r from generate_series(1, 20) t, generate_series(1, 2) r;
+select t, r from generate_series(1, 20) t, generate_series(1, 2) r
+on conflict (table_no, round) do nothing;
+
+-- 기존 신청 데이터로 공개 first name 목록과 신청 수를 맞춤
+update public.slot_counts c
+set taken = (
+      select count(*)::smallint
+      from public.signups s
+      where s.table_no = c.table_no and s.round = c.round
+    ),
+    first_names = coalesce((
+      select array_agg(s.first_name order by s.created_at, s.id)
+      from public.signups s
+      where s.table_no = c.table_no and s.round = c.round
+    ), '{}'::text[]);
 
 -- 권한: signups는 함수로만 접근, slot_counts는 읽기만 공개
 alter table public.signups enable row level security;
 alter table public.slot_counts enable row level security;
+drop policy if exists "public read counts" on public.slot_counts;
 create policy "public read counts" on public.slot_counts for select using (true);
 revoke all on public.signups from anon, authenticated;
 revoke insert, update, delete on public.slot_counts from anon, authenticated;
@@ -34,15 +57,33 @@ grant select on public.slot_counts to anon, authenticated;
 -- 신청 수 자동 동기화
 create or replace function public.sync_slot_counts() returns trigger
 language plpgsql security definer set search_path = public as $$
+declare
+  v_table smallint;
+  v_round smallint;
 begin
   if tg_op = 'INSERT' then
-    update slot_counts set taken = taken + 1 where table_no = new.table_no and round = new.round;
+    v_table := new.table_no;
+    v_round := new.round;
   elsif tg_op = 'DELETE' then
-    update slot_counts set taken = taken - 1 where table_no = old.table_no and round = old.round;
+    v_table := old.table_no;
+    v_round := old.round;
   end if;
+
+  update public.slot_counts c
+  set taken = snapshot.taken,
+      first_names = snapshot.first_names
+  from (
+    select count(*)::smallint as taken,
+           coalesce(array_agg(s.first_name order by s.created_at, s.id), '{}'::text[]) as first_names
+    from public.signups s
+    where s.table_no = v_table and s.round = v_round
+  ) snapshot
+  where c.table_no = v_table and c.round = v_round;
+
   return null;
 end $$;
 
+drop trigger if exists signups_sync on public.signups;
 create trigger signups_sync after insert or delete on public.signups
 for each row execute function public.sync_slot_counts();
 
