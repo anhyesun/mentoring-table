@@ -1,0 +1,301 @@
+{
+  "event": "Changbal Mentoring Day 2026",
+  "venue": "Health Sciences Education Building 345",
+  "rounds": [
+    {
+      "round": 1,
+      "time": "3:30 – 4:30 PM"
+    },
+    {
+      "round": 2,
+      "time": "4:40 – 5:40 PM"
+    }
+  ],
+  "seatsPerRound": 5,
+  "layout": {
+    "columns": 4,
+    "rows": 5,
+    "numbering": "row-major from top-left; podium and doors on the left wall"
+  },
+  "seats": {
+    "perTable": 6,
+    "order": [
+      "top-left",
+      "top-right",
+      "right-top",
+      "right-bottom",
+      "bottom-left",
+      "bottom-right"
+    ],
+    "mentorSeat": "right-top"
+  },
+  "tables": [
+    {
+      "table": 1,
+      "mentor": {
+        "name": "Insuk Cho",
+        "company": "Elastic",
+        "title": "Software Engineering",
+        "linkedin": "https://www.linkedin.com/in/insukcho",
+        "photo": "photos/insuk-cho.jpg",
+        "logo": {
+          "onLight": "logos/elastic-on-light.png",
+          "onDark": "logos/elastic-on-dark.png"
+        },
+        "showCompanyText": false
+      }
+    },
+    {
+      "table": 2,
+      "mentor": {
+        "name": "Hoyeon Park",
+        "company": "Amazon",
+        "title": "Software Engineering",
+        "linkedin": "https://www.linkedin.com/in/hoyeon-park-a9009815",
+        "photo": "photos/hoyeon-park.jpg",
+        "logo": {
+          "onLight": "logos/amazon-on-light.png",
+          "onDark": "logos/amazon-on-dark.png"
+        },
+        "showCompanyText": false
+      }
+    },
+    {
+      "table": 3,
+      "mentor": {
+        "name": "Hyunsoo Choe",
+        "company": "Amazon AWS",
+        "title": "Tech / Engineering 전반",
+        "linkedin": "https://www.linkedin.com/in/hyunsoo-choe-14652320/",
+        "photo": "photos/hyunsoo-choe.jpg",
+        "logo": {
+          "onLight": "logos/amazon-on-light.png",
+          "onDark": "logos/amazon-on-dark.png"
+        },
+        "showCompanyText": true
+      }
+    },
+    {
+      "table": 4,
+      "mentor": {
+        "name": "Jusung Park",
+        "company": "Microsoft",
+        "title": "Software Engineering (Teams)",
+        "linkedin": "https://www.linkedin.com/in/david-pk/",
+        "photo": "photos/jusung-park.jpg",
+        "logo": {
+          "onLight": "logos/microsoft-on-light.png",
+          "onDark": "logos/microsoft-on-dark.png"
+        },
+        "showCompanyText": false
+      }
+    },
+    {
+      "table": 5,
+      "mentor": {
+        "name": "Youngwon Kim",
+        "company": "Truveta",
+        "title": "ML Researcher",
+        "linkedin": "https://www.linkedin.com/in/kimyw/",
+        "photo": "photos/youngwon-kim.jpg",
+        "logo": {
+          "onLight": "logos/truveta-on-light.png",
+          "onDark": "logos/truveta-on-dark.png"
+        },
+        "showCompanyText": false
+      }
+    },
+    {
+      "table": 6,
+      "mentor": {
+        "name": "DongKyu Kim",
+        "company": "Google",
+        "title": "Software Engineering",
+        "linkedin": "https://www.linkedin.com/in/dongkyukim0419/",
+        "photo": "photos/dongkyu-kim.jpg",
+        "logo": {
+          "onLight": "logos/google-on-light.png",
+          "onDark": "logos/google-on-dark.png"
+        },
+        "showCompanyText": false
+      }
+    },
+    {
+      "table": 7,
+      "mentor": {
+        "name": "Jinu Jang",
+        "company": "Microsoft",
+        "title": "Applied Science (AI/ML)",
+        "linkedin": "https://www.linkedin.com/in/jinu-jang/",
+        "photo": null,
+        "logo": {
+          "onLight": "logos/microsoft-on-light.png",
+          "onDark": "logos/microsoft-on-dark.png"
+        },
+        "showCompanyText": false
+      }
+    },
+    {
+      "table": 8,
+      "mentor": {
+        "name": "Minkwon Choi",
+        "company": "Pinterest",
+        "title": "AI Solutions Engineering / 채용 코칭",
+        "linkedin": "https://www.linkedin.com/in/minkwon-choi/",
+        "photo": "photos/minkwon-choi.jpg",
+        "logo": {
+          "onLight": "logos/pinterest-on-light.png",
+          "onDark": "logos/pinterest-on-dark.png"
+        },
+        "showCompanyText": false
+      }
+    },
+    {
+      "table": 9,
+      "mentor": {
+        "name": "Taehwan Jung",
+        "company": "Microsoft",
+        "title": "Sr. Director of Product Management",
+        "linkedin": "https://www.linkedin.com/in/taehwan-j-56907316/",
+        "photo": null,
+        "logo": {
+          "onLight": "logos/microsoft-on-light.png",
+          "onDark": "logos/microsoft-on-dark.png"
+        },
+        "showCompanyText": false
+      }
+    },
+    {
+      "table": 10,
+      "mentor": {
+        "name": "Henry Kim",
+        "company": "The Home Depot",
+        "title": "Product Designer & UX Researcher",
+        "linkedin": "https://www.linkedin.com/in/henrykkim/",
+        "photo": "photos/henry-kim.jpg",
+        "logo": {
+          "onLight": "logos/the-home-depot-on-light.png",
+          "onDark": "logos/the-home-depot-on-dark.png"
+        },
+        "showCompanyText": false
+      }
+    },
+    {
+      "table": 11,
+      "mentor": {
+        "name": "Ethan Hong",
+        "company": "Meta",
+        "title": "Senior User Experience Researcher",
+        "linkedin": "https://www.linkedin.com/in/eshong/",
+        "photo": "photos/ethan-hong.jpg",
+        "logo": {
+          "onLight": "logos/meta-on-light.png",
+          "onDark": "logos/meta-on-dark.png"
+        },
+        "showCompanyText": false
+      }
+    },
+    {
+      "table": 12,
+      "mentor": {
+        "name": "Jason Park",
+        "company": "Google",
+        "title": "Senior UX Designer",
+        "linkedin": "https://www.linkedin.com/in/jason-park-28868611/",
+        "photo": "photos/jason-park.jpg",
+        "logo": {
+          "onLight": "logos/google-on-light.png",
+          "onDark": "logos/google-on-dark.png"
+        },
+        "showCompanyText": false
+      }
+    },
+    {
+      "table": 13,
+      "mentor": {
+        "name": "Hyunuk Lim",
+        "company": "Google",
+        "title": "Developer Relations / 커리어",
+        "linkedin": "https://www.linkedin.com/in/hyunuk",
+        "photo": "photos/hyunuk-lim.jpg",
+        "logo": {
+          "onLight": "logos/google-on-light.png",
+          "onDark": "logos/google-on-dark.png"
+        },
+        "showCompanyText": false
+      }
+    },
+    {
+      "table": 14,
+      "mentor": {
+        "name": "Minji Woo",
+        "company": "Microsoft Red Team",
+        "title": "Product Manager (Security)",
+        "linkedin": "https://www.linkedin.com/in/minji-woo-7914a9237/",
+        "photo": "photos/minji-woo.jpg",
+        "logo": {
+          "onLight": "logos/microsoft-on-light.png",
+          "onDark": "logos/microsoft-on-dark.png"
+        },
+        "showCompanyText": true
+      }
+    },
+    {
+      "table": 15,
+      "mentor": {
+        "name": "Ryan Lee",
+        "company": "JIGO",
+        "title": "Entrepreneurship / PM",
+        "linkedin": "https://www.linkedin.com/in/ryanshlee/",
+        "photo": "photos/ryan-lee.jpg",
+        "logo": {
+          "onLight": "logos/jigo-on-light.png",
+          "onDark": "logos/jigo-on-dark.png"
+        },
+        "showCompanyText": false
+      }
+    },
+    {
+      "table": 16,
+      "mentor": {
+        "name": "Seungmyung Lee",
+        "company": "Google DeepMind",
+        "title": "Software Engineer",
+        "linkedin": "https://www.linkedin.com/in/btrees/",
+        "photo": null,
+        "logo": {
+          "onLight": "logos/google-on-light.png",
+          "onDark": "logos/google-on-dark.png"
+        },
+        "showCompanyText": true
+      }
+    },
+    {
+      "table": 17,
+      "mentor": {
+        "name": "Hyesun An",
+        "company": "Microsoft",
+        "title": "Software Engineering",
+        "linkedin": "https://www.linkedin.com/in/anhyesun/",
+        "photo": "photos/hyesun-an.jpg",
+        "logo": {
+          "onLight": "logos/microsoft-on-light.png",
+          "onDark": "logos/microsoft-on-dark.png"
+        },
+        "showCompanyText": false
+      }
+    },
+    {
+      "table": 18,
+      "mentor": null
+    },
+    {
+      "table": 19,
+      "mentor": null
+    },
+    {
+      "table": 20,
+      "mentor": null
+    }
+  ]
+}
